@@ -1,0 +1,159 @@
+// Static product data (no backend) — add or edit products here
+const PRODUCTS = [
+  { id: 'p1', name: 'Classic White T-Shirt', category: 'Clothing', price: 19.99, description: 'Soft cotton tee, regular fit.', image: 'https://via.placeholder.com/400x300?text=T-Shirt' },
+  { id: 'p2', name: 'Noise-Cancelling Headphones', category: 'Electronics', price: 99.99, description: 'Comfortable over-ear with long battery life.', image: 'https://via.placeholder.com/400x300?text=Headphones' },
+  { id: 'p3', name: 'Stainless Steel Water Bottle', category: 'Home', price: 14.5, description: 'Keeps drinks cold for 24 hours.', image: 'https://via.placeholder.com/400x300?text=Bottle' },
+  { id: 'p4', name: 'Running Shoes', category: 'Footwear', price: 49.99, description: 'Lightweight and cushioned for everyday runs.', image: 'https://via.placeholder.com/400x300?text=Shoes' },
+  { id: 'p5', name: 'Bluetooth Speaker', category: 'Electronics', price: 29.99, description: 'Portable speaker with rich bass.', image: 'https://via.placeholder.com/400x300?text=Speaker' },
+  { id: 'p6', name: 'Denim Jacket', category: 'Clothing', price: 59.99, description: 'Classic cut, durable denim.', image: 'https://via.placeholder.com/400x300?text=Jacket' }
+];
+
+// ----- App State (simple front-end only) -----
+let filteredProducts = PRODUCTS.slice();
+let cart = {}; // { productId: quantity }
+
+// ----- DOM Elements -----
+const productListEl = document.getElementById('productList');
+const searchInput = document.getElementById('searchInput');
+const categoryFilter = document.getElementById('categoryFilter');
+const cartCount = document.getElementById('cartCount');
+const cartBtn = document.getElementById('cartBtn');
+const cartDrawer = document.getElementById('cartDrawer');
+const cartItemsEl = document.getElementById('cartItems');
+const cartTotalEl = document.getElementById('cartTotal');
+const closeCartBtn = document.getElementById('closeCart');
+const clearCartBtn = document.getElementById('clearCart');
+// ----- Initialize UI -----
+function init() {
+  populateCategoryFilter();
+  renderProducts(filteredProducts);
+  bindEvents();
+  loadCartFromStorage();
+  updateCartUI();
+}
+
+function populateCategoryFilter() {
+  const categories = Array.from(new Set(PRODUCTS.map(p => p.category)));
+  categories.forEach(cat => {
+    const opt = document.createElement('option');
+    opt.value = cat;
+    opt.textContent = cat;
+    categoryFilter.appendChild(opt);
+  });
+}
+
+function bindEvents() {
+  searchInput.addEventListener('input', onFilterChange);
+  categoryFilter.addEventListener('change', onFilterChange);
+  cartBtn.addEventListener('click', toggleCart);
+  closeCartBtn.addEventListener('click', toggleCart);
+  clearCartBtn.addEventListener('click', () => { cart = {}; saveCart(); renderCart(); updateCartUI(); });
+}
+
+function onFilterChange() {
+  const q = searchInput.value.trim().toLowerCase();
+  const cat = categoryFilter.value;
+  filteredProducts = PRODUCTS.filter(p => {
+    const matchQ = p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q);
+    const matchCat = (cat === 'all') || (p.category === cat);
+    return matchQ && matchCat;
+  });
+  renderProducts(filteredProducts);
+}
+
+function renderProducts(list) {
+  productListEl.innerHTML = '';
+  if (!list.length) { productListEl.innerHTML = '<p>No products found.</p>'; return; }
+  list.forEach(p => {
+    const card = document.createElement('article');
+    card.className = 'product';
+    card.innerHTML = `
+      <img src="${p.image}" alt="${p.name}" />
+      <h3>${p.name}</h3>
+      <p>${p.description}</p>
+      <div class="price">$${p.price.toFixed(2)}</div>
+      <div class="card-row">
+        <button class="btn btn-primary" data-add="${p.id}">Add to Cart</button>
+        <button class="btn btn-secondary" data-view="${p.id}">View</button>
+      </div>
+  `;
+    productListEl.appendChild(card);
+  });
+
+  // attach handlers for the newly added buttons
+  productListEl.querySelectorAll('[data-add]').forEach(btn => btn.addEventListener('click', () => addToCart(btn.dataset.add)));
+  productListEl.querySelectorAll('[data-view]').forEach(btn => btn.addEventListener('click', (e) => viewProduct(e.target.dataset.view)));
+}
+
+function addToCart(productId) {
+  if (!cart[productId]) cart[productId] = 0;
+  cart[productId] += 1;
+  saveCart();
+  updateCartUI();
+}
+
+function viewProduct(productId) {
+  const p = PRODUCTS.find(x => x.id === productId);
+  if (!p) return;
+  alert(${p.name}\n\n${p.description}\n\nPrice: $${p.price.toFixed(2)});
+}
+
+// ----- Cart UI -----
+function toggleCart() {
+  const open = cartDrawer.classList.toggle('open');
+  cartDrawer.setAttribute('aria-hidden', String(!open));
+  renderCart();
+}
+function renderCart() {
+  cartItemsEl.innerHTML = '';
+  const entries = Object.entries(cart);
+  if (!entries.length) { cartItemsEl.innerHTML = '<p>Your cart is empty.</p>'; cartTotalEl.textContent = '0.00'; return; }
+  let total = 0;
+  entries.forEach(([id, qty]) => {
+    const p = PRODUCTS.find(x => x.id === id);
+    if (!p) return;
+    const item = document.createElement('div');
+    item.className = 'cart-item';
+    const subtotal = p.price * qty;
+    total += subtotal;
+    item.innerHTML = `
+      <img src="${p.image}" alt="${p.name}" />
+      <div class="meta">
+        <div><strong>${p.name}</strong></div>
+        <div style="color:var(--muted)">Qty: ${qty} &middot; $${p.price.toFixed(2)}</div>
+      </div>
+      <div style="text-align:right">
+        <div>$${subtotal.toFixed(2)}</div>
+        <div style="margin-top:.5rem;display:flex;gap:.25rem;justify-content:flex-end">
+          <button class="btn btn-secondary" data-dec="${id}">-</button>
+          <button class="btn btn-secondary" data-inc="${id}">+</button>
+        </div>
+      </div>
+    `;
+    cartItemsEl.appendChild(item);
+  });
+  cartTotalEl.textContent = total.toFixed(2);
+
+  // bind inc/dec
+  cartItemsEl.querySelectorAll('[data-inc]').forEach(b => b.addEventListener('click', () => { modifyCart(b.dataset.inc, +1); }));
+  cartItemsEl.querySelectorAll('[data-dec]').forEach(b => b.addEventListener('click', () => { modifyCart(b.dataset.dec, -1); }));
+}
+
+function modifyCart(id, delta) {
+  if (!cart[id]) cart[id] = 0;
+  cart[id] += delta;
+  if (cart[id] <= 0) delete cart[id];
+  saveCart(); renderCart(); updateCartUI();
+}
+
+function updateCartUI() {
+  const count = Object.values(cart).reduce((s,n) => s + n, 0);
+  cartCount.textContent = count;
+}
+
+// ----- Persistence (localStorage) -----
+function saveCart() { try { localStorage.setItem('demo_cart', JSON.stringify(cart)); } catch(e) { console.warn('Storage failed', e); } }
+function loadCartFromStorage() { try { const raw = localStorage.getItem('demo_cart'); if (raw) cart = JSON.parse(raw); } catch(e) { cart = {}; } }
+
+// ----- Start App -----
+init();
