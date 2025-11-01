@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Product Catalog</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-grid">
+      <h1 class="logo">Product Catalog</h1>
+      <div class="controls">
+        <input id="searchInput" type="search" placeholder="Search products..." aria-label="Search products" />
+        <select id="categoryFilter" aria-label="Filter by category">
+          <option value="all">All Categories</option>
+        </select>
+        <button id="cartBtn" class="cart-btn" aria-label="Open cart">
+          Cart <span id="cartCount" class="cart-count">0</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="products-section">
+<div id="productList" class="product-list" aria-live="polite"></div>
+    </section>
+
+    <aside class="cart-drawer" id="cartDrawer" aria-hidden="true">
+      <div class="cart-header">
+        <h2>Your Cart</h2>
+        <button id="closeCart">Close</button>
+      </div>
+      <div id="cartItems" class="cart-items"></div>
+      <div class="cart-footer">
+        <div class="cart-total">Total: $<span id="cartTotal">0.00</span></div>
+        <button id="clearCart" class="btn-secondary">Clear Cart</button>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">Built with ❤ — Static demo</div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
